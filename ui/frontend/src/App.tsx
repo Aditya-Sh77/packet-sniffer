@@ -21,13 +21,24 @@ function severityColor(s: Alert["severity"]) {
   if (s === "medium") return "bg-yellow-500";
   return "bg-emerald-400";
 }
-
 export default function App() {
+  const alertsRef = useRef<Alert[]>([]);
+  const [capture, setCapture] = useState(false);
+  const captureRef = useRef(capture);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selected, setSelected] = useState<Alert | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Keep captureRef in sync with capture state
+  useEffect(() => {
+    captureRef.current = capture;
+  }, [capture]);
+
+  // Keep alertsRef in sync with state
+  useEffect(() => {
+    alertsRef.current = alerts;
+  }, [alerts]);
 
   useEffect(() => {
     let ws: WebSocket | null = null;
@@ -39,11 +50,17 @@ export default function App() {
       ws.onopen = () => console.log("Connected to WS server ✅");
 
       ws.onmessage = (ev) => {
-        const msg = JSON.parse(ev.data);
-        console.log("Alert received:", msg);
-        if (msg.type === "alert") {
-          setAlerts((a) => [msg.data, ...a].slice(0, 25)); // keep only latest 25
-          setSelected(prev => prev ? prev : msg.data); // select first alert by default
+        if (captureRef.current) {
+          const msg = JSON.parse(ev.data);
+          console.log("Alert received:", msg);
+
+          if (msg.type === "alert") {
+            const newAlerts = [msg.data, ...alertsRef.current]; // always use the ref
+            alertsRef.current = newAlerts;
+            setAlerts(newAlerts);
+
+            setSelected((prev) => (prev ? prev : msg.data)); // select first alert by default
+          }
         }
       };
 
@@ -65,51 +82,76 @@ export default function App() {
   }, []);
 
 
-  // Wireshark-like search filter
-  function matchesSearch(alert: Alert, query: string) {
-    if (!query.trim()) return true;
-    const terms = query.trim().split(/\s+/);
-    return terms.every(term => {
-      // field:value support
-      const m = term.match(/^(src|dst|protocol|severity|port|id|reason):(.+)$/i);
-      if (m) {
-        const field = m[1].toLowerCase();
-        const value = m[2].toLowerCase();
-        if (field === "src") return alert.src.toLowerCase().includes(value);
-        if (field === "dst") return alert.dst.toLowerCase().includes(value);
-        if (field === "protocol") return alert.protocol.toLowerCase().includes(value);
-        if (field === "severity") return alert.severity.toLowerCase().includes(value);
-        if (field === "port") return (String(alert.src_port).includes(value) || String(alert.dst_port).includes(value));
-        if (field === "id") return alert.id.toLowerCase().includes(value);
-        if (field === "reason") return alert.reason.toLowerCase().includes(value);
-        return false;
-      }
-      // General text search
-      const v = term.toLowerCase();
-      return (
-        alert.src.toLowerCase().includes(v) ||
-        alert.dst.toLowerCase().includes(v) ||
-        alert.protocol.toLowerCase().includes(v) ||
-        alert.severity.toLowerCase().includes(v) ||
-        String(alert.src_port).includes(v) ||
-        String(alert.dst_port).includes(v) ||
-        alert.id.toLowerCase().includes(v) ||
-        alert.reason.toLowerCase().includes(v)
-      );
-    });
-  }
 
-  const filteredAlerts = alerts.filter(al => matchesSearch(al, searchQuery));
+  // // Wireshark-like search filter
+  // function matchesSearch(alert: Alert, query: string) {
+  //   if (!query.trim()) return true;
+  //   const terms = query.trim().split(/\s+/);
+  //   return terms.every(term => {
+  //     // field:value support
+  //     const m = term.match(/^(src|dst|protocol|severity|port|id|reason):(.+)$/i);
+  //     if (m) {
+  //       const field = m[1].toLowerCase();
+  //       const value = m[2].toLowerCase();
+  //       if (field === "src") return alert.src.toLowerCase().includes(value);
+  //       if (field === "dst") return alert.dst.toLowerCase().includes(value);
+  //       if (field === "protocol") return alert.protocol.toLowerCase().includes(value);
+  //       if (field === "severity") return alert.severity.toLowerCase().includes(value);
+  //       if (field === "port") return (String(alert.src_port).includes(value) || String(alert.dst_port).includes(value));
+  //       if (field === "id") return alert.id.toLowerCase().includes(value);
+  //       if (field === "reason") return alert.reason.toLowerCase().includes(value);
+  //       return false;
+  //     }
+  //     // General text search
+  //     const v = term.toLowerCase();
+  //     return (
+  //       alert.src.toLowerCase().includes(v) ||
+  //       alert.dst.toLowerCase().includes(v) ||
+  //       alert.protocol.toLowerCase().includes(v) ||
+  //       alert.severity.toLowerCase().includes(v) ||
+  //       String(alert.src_port).includes(v) ||
+  //       String(alert.dst_port).includes(v) ||
+  //       alert.id.toLowerCase().includes(v) ||
+  //       alert.reason.toLowerCase().includes(v)
+  //     );
+  //   });
+  // }
+
+  // const filteredAlerts = alerts.filter(al => matchesSearch(al, searchQuery));
+  // console.log("Filtered alerts:", filteredAlerts, "Search query:", searchQuery);
 
   return (
     <div className="flex h-screen font-sans">
       {/* Sidebar */}
       <div className="w-[420px] border-r border-gray-200 p-4 flex flex-col">
         <h2 className="text-xl font-bold">Packet Alerts</h2>
+        <section className="flex justify-center items-center">
+          
+          <button className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm mt-3 mb-3 mr-10  w-[30%]" 
+          onClick={() => {setCapture(c => !c)}}>{capture ? "Stop Capture" : "Start Capture"}
+          </button>
+
+          {/* <button className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm mt-3 mb-3 mr-10  w-[30%]" 
+          onClick={() => setCapture(false)}>
+            Stop Capture
+          </button> */}
+          
+          <button className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm mt-3 mb-3 w-[30%]" onClick={() => {
+            wsRef.current?.send(JSON.stringify({type: "clear"}));
+            alertsRef.current = [];
+            setAlerts([]);
+            setSelected(null);
+            console.log("Cleared alerts");
+            console.log("Current alerts after clear:", alerts);
+          }}>
+            Clear alerts
+          </button>
+
+        </section>  
         <div className="text-gray-500 text-sm mb-3">
-          Live stream — {filteredAlerts.length} alerts
+          Live stream — {alerts.length} alerts
         </div>
-        {/* Wireshark-like search bar */}
+        {/* Wireshark-like search bar
         <div className="mb-3">
           <input
             type="text"
@@ -118,11 +160,12 @@ export default function App() {
             className="border rounded px-2 py-1 w-full text-xs"
             placeholder="Search (e.g. src:192.168 port:443 severity:high TCP)"
           />
-        </div>
+        </div> */}
         <div className="overflow-y-auto flex-1 space-y-2">
-          {filteredAlerts.map((al) => (
+          {!(alerts.length==0) && alerts.map((al) => (
+            console.log("Rendering alert:", al),
             <div
-              key={al.id+'-'+al.time}
+              key={al.id}
               onClick={() => setSelected(al)}
               className="bg-white rounded-xl p-3 shadow-sm cursor-pointer hover:shadow-md flex justify-between items-center"
             >

@@ -245,6 +245,10 @@ async def handler(websocket):
                 m = json.loads(msg)
                 if m.get("type") == "ack":
                     print("[ws] Ack from client:", m.get("id"))
+                elif m.get("type") == "clear":
+                    print("[ws] Client requested clear")
+                    with _alert_queue.mutex:
+                        _alert_queue.queue.clear()
             except Exception:
                 pass
     except websockets.exceptions.ConnectionClosed:
