@@ -30,6 +30,8 @@ export default function App() {
   const [showPreview, setShowPreview] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
+
+
   // Keep captureRef in sync with capture state
   useEffect(() => {
     captureRef.current = capture;
@@ -130,11 +132,6 @@ export default function App() {
           <button className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm mt-3 mb-3 mr-10  w-[30%]" 
           onClick={() => {setCapture(c => !c)}}>{capture ? "Stop Capture" : "Start Capture"}
           </button>
-
-          {/* <button className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm mt-3 mb-3 mr-10  w-[30%]" 
-          onClick={() => setCapture(false)}>
-            Stop Capture
-          </button> */}
           
           <button className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm mt-3 mb-3 w-[30%]" onClick={() => {
             wsRef.current?.send(JSON.stringify({type: "clear"}));
@@ -161,8 +158,8 @@ export default function App() {
             placeholder="Search (e.g. src:192.168 port:443 severity:high TCP)"
           />
         </div> */}
-        <div className="overflow-y-auto flex-1 space-y-2">
-          {!(alerts.length==0) && alerts.map((al) => (
+        <div className="overflow-y-auto flex-1 space-y-2" key={alerts.length}>
+          {alerts.map((al) => (
             console.log("Rendering alert:", al),
             <div
               key={al.id}
@@ -190,6 +187,7 @@ export default function App() {
             </div>
           ))}
         </div>
+
       </div>
 
       {/* Main detail view */}
