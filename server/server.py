@@ -31,7 +31,7 @@ PAYLOAD_PATTERNS = [
     re.compile(br"(?i)cmd\.exe"),
     re.compile(br"(?i)\/bin\/sh"),
 ]
-OVERSIZE_THRESHOLD = 3000  # bytes -> heuristic for suspicious large packets
+OVERSIZE_THRESHOLD = 5000  # bytes -> heuristic for suspicious large packets
 
 _alert_queue: Queue = Queue()
 
