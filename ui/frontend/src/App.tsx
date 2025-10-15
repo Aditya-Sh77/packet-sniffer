@@ -28,6 +28,8 @@ export default function App() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selected, setSelected] = useState<Alert | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+
   const wsRef = useRef<WebSocket | null>(null);
 
 
@@ -36,6 +38,15 @@ export default function App() {
   useEffect(() => {
     captureRef.current = capture;
   }, [capture]);
+
+  // Toggle dark mode class on document
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   // Keep alertsRef in sync with state
   useEffect(() => {
@@ -123,17 +134,25 @@ export default function App() {
   // console.log("Filtered alerts:", filteredAlerts, "Search query:", searchQuery);
 
   return (
-    <div className="flex h-screen font-sans">
+    <div className="flex h-screen font-sans bg-white dark:bg-gray-900 text-black dark:text-white">
       {/* Sidebar */}
-      <div className="w-[420px] border-r border-gray-200 p-4 flex flex-col">
-        <h2 className="text-xl font-bold">Packet Alerts</h2>
+      <div className="w-[420px] border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 flex flex-col">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-xl font-bold">Packet Alerts</h2>
+          <button 
+            onClick={() => setDarkMode(!darkMode)}
+            className="px-3 py-1 rounded-lg text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            {darkMode ? '☀️' : '🌙'}
+          </button>
+        </div>
         <section className="flex justify-center items-center">
           
-          <button className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm mt-3 mb-3 mr-10  w-[30%]" 
+          <button className="px-3 py-1 rounded-lg text-sm mt-3 mb-3 mr-10 w-[30%] bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700"
           onClick={() => {setCapture(c => !c)}}>{capture ? "Stop Capture" : "Start Capture"}
           </button>
           
-          <button className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm mt-3 mb-3 w-[30%]" onClick={() => {
+          <button className="px-3 py-1 rounded-lg text-sm mt-3 mb-3 w-[30%] bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700" onClick={() => {
             wsRef.current?.send(JSON.stringify({type: "clear"}));
             alertsRef.current = [];
             setAlerts([]);
@@ -145,7 +164,7 @@ export default function App() {
           </button>
 
         </section>  
-        <div className="text-gray-500 text-sm mb-3">
+        <div className="text-gray-500 dark:text-gray-400 text-sm mb-3">
           Live stream — {alerts.length} alerts
         </div>
         {/* Wireshark-like search bar
@@ -164,16 +183,16 @@ export default function App() {
             <div
               key={al.id}
               onClick={() => setSelected(al)}
-              className="bg-white rounded-xl p-3 shadow-sm cursor-pointer hover:shadow-md flex justify-between items-center"
+              className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl p-3 shadow-sm cursor-pointer hover:shadow-md flex justify-between items-center"
             >
               <div>
-                <div className="font-semibold text-gray-800">
+                <div className="font-semibold text-gray-800 dark:text-gray-100">
                   {al.src}:{al.src_port} → {al.dst}:{al.dst_port}
                 </div>
-                <div className="text-sm text-gray-600 truncate">
+                <div className="text-sm text-gray-600 dark:text-gray-300 truncate">
                   {al.payload_preview.slice(0, 20)}
                 </div>
-                <div className="text-xs text-gray-400">{al.time}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-400">{al.time}</div>
               </div>
               <div>
                 <span
@@ -191,9 +210,9 @@ export default function App() {
       </div>
 
       {/* Main detail view */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-6 overflow-y-auto bg-white dark:bg-black">
         {!selected ? (
-          <div className="text-gray-500">
+          <div className="text-gray-500 dark:text-gray-400">
             <h3 className="text-lg font-semibold">No alert selected</h3>
             <p>Click an alert on the left to inspect details.</p>
           </div>
@@ -201,19 +220,19 @@ export default function App() {
           <div className="space-y-5">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Alert: {selected.id}</h3>
-              <div className="text-xs text-gray-500">{selected.time}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">{selected.time}</div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                 <div className="font-semibold">Src</div>
                 <div>{selected.src}:{selected.src_port}</div>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                 <div className="font-semibold">Dst</div>
                 <div>{selected.dst}:{selected.dst_port}</div>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                 <div className="font-semibold">Proto</div>
                 <div>{selected.protocol}</div>
               </div>
@@ -221,7 +240,7 @@ export default function App() {
 
             <div>
               <h4 className="font-semibold mb-1">Reason</h4>
-              <div className="bg-white shadow p-3 rounded-lg">
+              <div className="bg-white dark:bg-gray-800 shadow p-3 rounded-lg">
                 {selected.reason}
               </div>
             </div>
@@ -229,8 +248,8 @@ export default function App() {
               <h4 className="font-semibold mb-1">Payload preview</h4>
               {selected.payload_label === "TLS/ENCRYPTED" ? (
                 <>
-                <span className="p-3 rounded-lg bg-yellow-50 text-sm">Encrypted TLS payload</span>
-                <button className = "p-2 rounded-lg bg-blue-300 text-sm hover:bg-blue-400 hover:cursor-pointer"  type="button" onClick={() => setShowPreview(!showPreview)}>Show Anyways</button>
+                <span className="p-3 mt-2 mb-2 mr-2 rounded-lg bg-yellow-100 dark:bg-yellow-800 text-sm">Encrypted TLS payload</span>
+                <button className = "p-2 rounded-lg bg-blue-400 dark:bg-blue-700 text-sm hover:bg-blue-300 dark:hover:bg-blue-600 hover:cursor-pointer"  type="button" onClick={() => setShowPreview(!showPreview)}>Show Anyways</button>
                 {showPreview && (
                   <div className="bg-slate-900 text-slate-200 p-3 rounded-lg overflow-x-auto text-sm mt-2">{selected.payload_preview}</div>
                 )}
@@ -251,7 +270,7 @@ export default function App() {
               </pre>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-2">
               <button
                 className="px-3 py-1 rounded-lg bg-blue-500 text-white hover:bg-blue-600 text-sm"
                 onClick={() => {
@@ -264,7 +283,7 @@ export default function App() {
                 Acknowledge
               </button>
               <button
-                className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm"
+                className="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
                 onClick={() => {
                   navigator.clipboard.writeText(
                     JSON.stringify(selected, null, 2)
