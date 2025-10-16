@@ -24,15 +24,56 @@ import random
 # -------------------------
 # Configuration / signatures
 # -------------------------
-BAD_IPS = {"1.2.3.4", "198.51.100.5", }  # example bad IPs; replace with real list
+BAD_IPS = {"1.2.3.4", "198.51.100.5", "117.193.86.141",
+    "59.97.177.136",
+    "110.172.18.6",
+    "117.196.138.140",
+    "122.172.80.205",
+    "122.162.151.157",
+    "117.204.31.9",
+    "116.74.8.239",
+    "115.187.61.214",
+    "59.93.241.255",
+    "117.205.106.158",
+    "122.162.151.137",
+    "59.93.218.211",
+    "115.187.36.52",
+    "122.161.50.166",
+    "124.123.81.104",
+    "122.162.150.122",
+    "117.201.189.91",
+    "117.194.243.7" } 
+
 PAYLOAD_PATTERNS = [
     re.compile(br"(?i)password"),
     re.compile(br"(?i)pass=|pwd=|passwd="),
     re.compile(br"(?i)cmd\.exe"),
     re.compile(br"(?i)\/bin\/sh"),
+    re.compile(br"(?i)token=|access_token=|auth_token=|bearer\s+[A-Za-z0-9\-\._~\+/]+=*"),
+    re.compile(br"(?i)authorization:\s*basic|authorization:\s*bearer"),
+    re.compile(br"(?i)ssh-rsa|ssh-ed25519|ssh-dss|-----BEGIN (RSA|OPENSSH|PRIVATE) KEY-----"),
+    re.compile(br"(?i)aws_access_key_id|aws_secret_access_key|aws_session_token"),
+    re.compile(br"(?i)azure.*(connectionstring|accesskey|sharedaccesskey)"),
+    re.compile(br"(?i)mongodb:\/\/|mongodb\+srv:\/\/"),
+    re.compile(br"(?i)postgresql:\/\/|mysql:\/\/|redis:\/\/"),
+    re.compile(br"(?i)\bUNION\b\s+\bSELECT\b"),
+    re.compile(br"(?i)\bDROP\b\s+\bTABLE\b|\bALTER\b\s+\bTABLE\b|\bTRUNCATE\b"),
+    re.compile(br"(?i)'?\s*or\s+'?1'?\s*=\s*'1'"),            # classic SQLi fingerprint
+    re.compile(br"(?i)xp_cmdshell|sp_executesql|sysobjects|information_schema"),
+    re.compile(br"(?i)\/\.\.\/|\.\.\\\\"),                    # directory traversal
+    re.compile(br"(?i)\/etc\/passwd|\/etc\/shadow"),
+    re.compile(br"(?i)<script\b|<\/script>|onerror=|onload="), # XSS artifacts
+    re.compile(br"(?i)eval\(|base64_decode\(|gzinflate\("),
+    re.compile(br"(?i)wget\s+(http|https):\/\/|curl\s+(-s|--silent)?\s+(http|https):\/\/"),
+    re.compile(br"(?i)\bnc\s+(-e|-c)?\b|netcat\b|bash\s+-i\b"), # reverse shell tooling
+    re.compile(br"(?i)\bchmod\s+[0-7]{3,4}\b|\bchown\s+\w+:\w+\b"),
+    re.compile(br"(?i)\bpasswd\b:|root:"),
+    re.compile(br"(?i)authorization:\s*\"?basic\s+[A-Za-z0-9=+/]+\"?"), # Basic auth header
+    re.compile(br"(?i)BEGIN PGP PRIVATE KEY BLOCK|-----BEGIN PGP PRIVATE KEY-----"),
+    re.compile(br"(?i)aws_secret|secret_key|private_key|client_secret"),
+    re.compile(br"(?i)password\s*[:=]\s*['\"]?[^\s'\"\\]{4,}['\"]?"),  # suspicious inline password
 ]
 OVERSIZE_THRESHOLD = 5000  # bytes -> heuristic for suspicious large packets
-
 _alert_queue: Queue = Queue()
 
 
